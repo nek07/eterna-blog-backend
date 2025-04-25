@@ -8,14 +8,15 @@ import { prisma } from './config/prismaClient.js';
 import { postsRouter } from './routes/posts.js';
 import { auth } from './middlewares/auth.js';
 import { authRouter } from './routes/auth.js';
+import { apiLimiter } from './middlewares/rateLimit.js';
 dotenv.config();
 
 const app = express();
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
-app.use('/auth', authRouter);
-  
+app.use('/auth',apiLimiter, authRouter);
+app.use('/posts',apiLimiter, postsRouter);
 // health-check: проверяем соединение с PG
 app.get('/health', async (_req, res) => {
   await prisma.$queryRaw`SELECT 1`;
@@ -29,8 +30,8 @@ app.use((err, req, res, next) => {
   });
   
 
+app.use(apiLimiter);
 
-app.use('/posts', postsRouter);
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`🚀  API ready on http://localhost:${PORT}`);
